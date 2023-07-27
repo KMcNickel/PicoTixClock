@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
@@ -36,6 +37,8 @@ uint8_t ledUpdateTicks = 0;
 
 DS3231 rtc(DS3231_I2C_PERIPHERAL);
 bool use12HourTime = false;
+
+std::string stdInBuffer;
 
 #define COLOR_LIST_SIZE 7
 uint32_t colors[] = 
@@ -213,6 +216,30 @@ bool tickTimerCallback(struct repeating_timer *t)
     return true;
 }
 
+void processTerminalString(std::string terminalString)
+{
+    printf("String: %s\r\n", terminalString.c_str());
+}
+
+void charsAvailableCallback(void * param)
+{
+    char incoming = getchar_timeout_us(0);
+    if(incoming == PICO_ERROR_TIMEOUT) return;
+
+    if(incoming == '\r' || incoming == '\n')
+    {
+        if(stdInBuffer.empty()) return;
+        putchar('\r');
+        putchar('\n');
+        processTerminalString(stdInBuffer);
+        stdInBuffer.clear();
+        return;
+    }
+
+    putchar_raw(incoming);
+    stdInBuffer.push_back(incoming);
+}
+
 void initializeWS2812()
 {
     for(int i = 0; i < LED_COLOR_COUNT * MAX_LED_COUNT; i++)
@@ -251,6 +278,12 @@ void initializeTimers()
     add_repeating_timer_ms(TICK_TIMER_DELAY, tickTimerCallback, NULL, &tickTimer);
 }
 
+void initializeCLI()
+{
+    stdInBuffer.clear();
+    stdio_set_chars_available_callback(charsAvailableCallback, NULL);
+}
+
 void initialize()
 {
     stdio_init_all();
@@ -260,6 +293,7 @@ void initialize()
     initializeWS2812();
     initializeDS3231();
     initializeTimers();
+    initializeCLI();
 }
 
 int main() {
