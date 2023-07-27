@@ -16,7 +16,7 @@
 #define WS2812_FREQUENCY 800000
 
 #define MAX_BRIGHTNESS_INPUT 255
-#define MAX_BRIGHTNESS_OUTPUT 7
+#define MAX_BRIGHTNESS_OUTPUT 15
 #define BRIGHTNESS_DIVIDEND (MAX_BRIGHTNESS_INPUT / MAX_BRIGHTNESS_OUTPUT)
 
 #define DS3231_I2C_PERIPHERAL i2c1
@@ -35,8 +35,9 @@ uint8_t timeReportTicks = 0;
 uint8_t ledUpdateTicks = 0;
 
 DS3231 rtc(DS3231_I2C_PERIPHERAL);
+bool use12HourTime = false;
 
-#define COLOR_LIST_SIZE 10
+#define COLOR_LIST_SIZE 7
 uint32_t colors[] = 
 {
     0x404040,
@@ -45,10 +46,7 @@ uint32_t colors[] =
     0x0000FF,
     0x800080,
     0x808000,
-    0x008080,
-    0x408060,
-    0x602080,
-    0x802020
+    0x008080
 };
 
 uint8_t laneSize[] = 
@@ -136,13 +134,34 @@ void shuffleArray(uint8_t * array, uint8_t len)
     }
 }
 
-void updateColors()
+void shuffleArray(uint32_t * array, uint8_t len)
+{
+    uint32_t temp;
+
+    for (int i = len - 1; i > 0; i--)
+    {
+        int j = rand() % (i + 1);
+        temp = *(array + i);
+        *(array + i) = *(array + j);
+        *(array + j) = temp;
+    }
+}
+
+void updateDisplay()
 {
     datetime_t currentTime;
     uint8_t ledCount[4];
     uint8_t ledsAvailable[MAX_LED_COUNT];
 
+    shuffleArray(colors, COLOR_LIST_SIZE);
+
     rtc.readTime(&currentTime);
+
+    if(use12HourTime)
+    {
+        if(currentTime.hour > 12) currentTime.hour -= 12;
+        if(currentTime.hour == 0) currentTime.hour = 12;
+    }
 
     ledCount[0] = currentTime.hour / 10;
     ledCount[1] = currentTime.hour % 10;
@@ -157,12 +176,12 @@ void updateColors()
             ledsAvailable[j] = j;
         }
         if(ledCount[i] == 0) continue;
-        if(ledCount[i] == 1) setColors(i, rand() % laneSize[i], colors[rand() % COLOR_LIST_SIZE]);
+        if(ledCount[i] == 1) setColors(i, rand() % laneSize[i], colors[i]);
         else
         {
             shuffleArray(ledsAvailable, laneSize[i]);
             for(int j = 0; j < ledCount[i]; j++)
-                setColors(i, ledsAvailable[j], colors[rand() % COLOR_LIST_SIZE]);
+                setColors(i, ledsAvailable[j], colors[i]);
         }
     }
 
@@ -187,7 +206,7 @@ bool tickTimerCallback(struct repeating_timer *t)
 
     if(ledUpdateTicks == ledUpdateTickThreshold)
     {
-        updateColors();
+        updateDisplay();
         ledUpdateTicks = 0;
     }
     
