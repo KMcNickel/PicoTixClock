@@ -49,7 +49,26 @@ void Terminal::setPrompt(std::string str)
     prompt = str;
 }
 
-Terminal::Terminal(){};
+void Terminal::addCommand(commandOptions opt)
+{
+    options.push_back(opt);
+}
+
+void Terminal::addCommand(char shortMatch, std::string longMatch, 
+        std::string description, void (*callback)(int argc, char * argv[]))
+{
+    commandOptions opt;
+
+    opt.shortMatch = shortMatch;
+    opt.longMatch = longMatch;
+    opt.description = description;
+    opt.callback = callback;
+    
+    options.push_back(opt);
+}
+
+Terminal::Terminal()
+{ };
 
 Terminal::Terminal(void (*printStrFunc)(char *))
 {

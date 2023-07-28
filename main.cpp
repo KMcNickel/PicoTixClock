@@ -262,6 +262,10 @@ void initializeTimers()
 
 void initializeCLI()
 {
+    cliTerminal.addCommand('t', "settime", "Set the time on the device. Use format HH:MM:SS for 24-hour time or \"HH:MM:SS (a|p)\" for 12-hour time.", NULL);
+    cliTerminal.addCommand('g', "gettime", "Get the time from the device", NULL);
+    cliTerminal.addCommand('m', "setmode", "Set the time mode of the device. Use \"12\" for 12-hour time or \"24\" for 24-hour time", NULL);
+
     cliTerminal.setPrompt("Tick Tock, I'm a clock");
     cliTerminal.showPrompt();
     stdio_set_chars_available_callback(charsAvailableCallback, NULL);
