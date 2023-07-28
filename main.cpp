@@ -9,6 +9,7 @@
 #include "ws2812.pio.h"
 #include "math.h"
 #include "include/ds3231.h"
+#include "include/terminal.h"
 
 #define LED_COLOR_COUNT 3   //RGB LEDs
 #define LED_LANE_COUNT 4    //4 strips on different pio pins
@@ -29,6 +30,8 @@
 static uint32_t ledTxBuf[LED_COLOR_COUNT * MAX_LED_COUNT];
 int ws2812StateMachine;
 
+Terminal cliTerminal;
+
 struct repeating_timer tickTimer;
 uint8_t ledUpdateTickThreshold = 5;
 uint8_t timeReportTickThreshold = 60;
@@ -37,8 +40,6 @@ uint8_t ledUpdateTicks = 0;
 
 DS3231 rtc(DS3231_I2C_PERIPHERAL);
 bool use12HourTime = false;
-
-std::string stdInBuffer;
 
 #define COLOR_LIST_SIZE 7
 uint32_t colors[] = 
@@ -216,28 +217,9 @@ bool tickTimerCallback(struct repeating_timer *t)
     return true;
 }
 
-void processTerminalString(std::string terminalString)
-{
-    printf("String: %s\r\n", terminalString.c_str());
-}
-
 void charsAvailableCallback(void * param)
 {
-    char incoming = getchar_timeout_us(0);
-    if(incoming == PICO_ERROR_TIMEOUT) return;
-
-    if(incoming == '\r' || incoming == '\n')
-    {
-        if(stdInBuffer.empty()) return;
-        putchar('\r');
-        putchar('\n');
-        processTerminalString(stdInBuffer);
-        stdInBuffer.clear();
-        return;
-    }
-
-    putchar_raw(incoming);
-    stdInBuffer.push_back(incoming);
+    cliTerminal.readInChar(getchar());
 }
 
 void initializeWS2812()
@@ -280,7 +262,8 @@ void initializeTimers()
 
 void initializeCLI()
 {
-    stdInBuffer.clear();
+    cliTerminal.setPrompt("Tick Tock, I'm a clock");
+    cliTerminal.showPrompt();
     stdio_set_chars_available_callback(charsAvailableCallback, NULL);
 }
 

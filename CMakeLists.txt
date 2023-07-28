@@ -11,6 +11,7 @@ pico_sdk_init()
 add_executable(${PROJECT_NAME}
     main.cpp
     ds3231.cpp
+    terminal.cpp
 )
 
 pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/pio/ws2812.pio)
